@@ -25,4 +25,4 @@ services:
       - key: SELF_URL
         sync: false
       - key: KEEPALIVE_INTERVAL_MS
-        value: "600000"
+        value: "50000"
