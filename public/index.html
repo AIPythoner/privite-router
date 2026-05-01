@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privite Router · 路由管理</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div>
+        <h1>Privite Router</h1>
+        <p class="subtitle">反向代理 · 隐藏源站 · <a href="/healthz" target="_blank" rel="noopener">健康检查</a></p>
+      </div>
+      <div class="topbar-actions">
+        <span id="base-url" class="pill"></span>
+        <span id="user-label" class="pill pill-user" hidden></span>
+        <button id="btn-password" class="btn btn-small">修改密码</button>
+        <button id="btn-logout" class="btn btn-small">退出</button>
+      </div>
+    </header>
+
+    <div id="banner-memory" class="banner banner-warn" hidden>
+      <b>临时缓存模式</b> · 未配置 MySQL 环境变量，规则保存在内存中，<b>服务重启后会丢失</b>。
+      在 Render 环境变量里补齐 <code>MYSQL_HOST / MYSQL_USER / MYSQL_PASSWORD / MYSQL_DATABASE</code> 后重启服务即启用持久化。
+    </div>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>转发规则</h2>
+        <div class="card-actions">
+          <button id="btn-refresh" class="btn">刷新</button>
+          <button id="btn-add" class="btn btn-primary">+ 新增规则</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="routes-table">
+          <thead>
+            <tr>
+              <th style="width:70px">状态</th>
+              <th>路径前缀</th>
+              <th>目标</th>
+              <th style="width:90px">剥离</th>
+              <th>备注</th>
+              <th style="width:240px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="routes-body"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty" hidden>暂无规则，点上方「新增规则」开始配置</div>
+    </section>
+
+    <section class="card">
+      <h2>使用说明</h2>
+      <ul class="docs">
+        <li>访问 <code><span class="base-inline"></span>/app1/xxx</code>，会被转发到 <b>路径前缀 = /app1</b> 的目标服务器</li>
+        <li><b>剥离前缀</b>开启：<code>/app1/foo</code> → <code>目标/foo</code>；关闭：保留原路径 <code>目标/app1/foo</code></li>
+        <li>最长前缀优先匹配，例如 <code>/api/v2</code> 比 <code>/api</code> 优先。</li>
+        <li><b>全量转发</b>：前缀填 <code>/</code> 即可把整域所有请求转到目标（适合后台系统，它们通常用 <code>/static/...</code> 绝对资源路径）。全量转发时"剥离前缀"无效。</li>
+        <li>支持 HTTP / HTTPS / WebSocket。目标格式：<code>http://ip:端口</code> 或 <code>https://host</code></li>
+        <li>保留路径 <code>/__admin</code>、<code>/healthz</code> 不可作为前缀</li>
+        <li>修改立即生效，无需重启服务</li>
+      </ul>
+    </section>
+  </div>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-mask"></div>
+    <div class="modal-box">
+      <h2 id="modal-title">新增规则</h2>
+      <form id="route-form">
+        <input type="hidden" name="id">
+        <div class="field">
+          <label>路径前缀 <small>(填 <code>/</code> = 整域全量转发；或 <code>/app1</code> 这种局部前缀)</small></label>
+          <input name="path_prefix" placeholder="/ 或 /app1" required autocomplete="off">
+        </div>
+        <div class="field">
+          <label>目标 URL <small>(完整的 http:// 或 https://)</small></label>
+          <div class="row">
+            <input name="target" placeholder="http://192.0.2.10:8080" required autocomplete="off" style="flex:1">
+            <button type="button" id="btn-test" class="btn">测试</button>
+          </div>
+          <div id="test-result" class="hint" hidden></div>
+        </div>
+        <div class="field inline">
+          <label class="check"><input type="checkbox" name="strip_prefix" checked> 剥离前缀</label>
+          <label class="check"><input type="checkbox" name="preserve_host"> 保留 Host 头</label>
+          <label class="check"><input type="checkbox" name="enabled" checked> 启用</label>
+        </div>
+        <div class="field">
+          <label>备注 <small>(可选)</small></label>
+          <input name="note" placeholder="用途说明" autocomplete="off">
+        </div>
+        <div class="form-actions">
+          <button type="button" id="btn-cancel" class="btn">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pw-modal" class="modal" hidden>
+    <div class="modal-mask" data-close="pw"></div>
+    <div class="modal-box" style="min-width:380px;max-width:420px;">
+      <h2>修改密码</h2>
+      <form id="pw-form">
+        <div class="field">
+          <label>旧密码</label>
+          <input name="old_password" type="password" required autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label>新密码 <small>(至少 6 位)</small></label>
+          <input name="new_password" type="password" required minlength="6" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label>确认新密码</label>
+          <input name="confirm" type="password" required minlength="6" autocomplete="new-password">
+        </div>
+        <div id="pw-err" class="hint err" hidden></div>
+        <div class="form-actions">
+          <button type="button" class="btn" data-close="pw">取消</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

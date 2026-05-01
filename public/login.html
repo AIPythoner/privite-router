@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 · Privite Router</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-body">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-head">
+        <h1>Privite Router</h1>
+        <p class="login-sub">管理员登录</p>
+      </div>
+      <form id="login-form" autocomplete="on">
+        <div class="field">
+          <label>用户名</label>
+          <input name="user" value="admin" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label>密码</label>
+          <input name="password" type="password" autocomplete="current-password" required autofocus>
+        </div>
+        <div id="error" class="hint err" hidden></div>
+        <button type="submit" class="btn btn-primary btn-full" id="btn-login">登 录</button>
+      </form>
+      <p class="login-foot">首次登录请使用默认密码，登录后可在页面内修改。</p>
+    </div>
+  </div>
+  <script src="login.js"></script>
+</body>
+</html>
